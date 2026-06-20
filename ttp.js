@@ -20,7 +20,7 @@ import {
 export const BOX = 512;
 
 /** Line-height multiplier applied to the font size (matches CSS line-height). */
-const LINE_HEIGHT = 1.1;
+const LINE_HEIGHT = 1.0;
 
 /** Binary-search bounds for the font size, in px. */
 const MIN_SIZE = 4;
@@ -35,6 +35,34 @@ const CANVAS_FAMILY = '"Impact", "AppleColorEmoji", "NotoColorEmoji"';
 
 /** Pretext options: respect explicit newlines, wrap on word boundaries. */
 const PRETEXT_OPTS = { whiteSpace: "pre-wrap", wordBreak: "normal" };
+
+/** Reused canvas 2D context for measuring individual word widths. */
+const _measureCtx =
+  typeof document !== "undefined" ? document.createElement("canvas").getContext("2d") : null;
+
+/**
+ * Width (px) of the widest whitespace-delimited word at a given font size.
+ *
+ * Pretext, when a single word is wider than the box, breaks it at grapheme
+ * boundaries to keep `maxLineWidth` within bounds — so measureLineStats can
+ * never report an oversized word. The DOM does NOT break words
+ * (overflow-wrap: normal), so we must reject such sizes ourselves. We measure
+ * with canvas, the same engine Pretext (and the browser) use.
+ * @param {string} text
+ * @param {number} size
+ * @returns {number}
+ */
+function longestWordWidth(text, size) {
+  if (!_measureCtx) return 0;
+  _measureCtx.font = `${size}px ${CANVAS_FAMILY}`;
+  let max = 0;
+  for (const word of text.split(/\s+/)) {
+    if (!word) continue;
+    const w = _measureCtx.measureText(word).width;
+    if (w > max) max = w;
+  }
+  return max;
+}
 
 // ----------------------------------------------------------------------------
 // Fit logic (pure, synchronous, canvas-only)
@@ -61,6 +89,10 @@ export function strokeForSize(size) {
 function fitsAtSize(text, size) {
   const stroke = strokeForSize(size);
   const avail = BOX - 2 * stroke;
+
+  // No single word may be wider than the box — otherwise it overflows, since
+  // the DOM never breaks inside a word.
+  if (longestWordWidth(text, size) > avail) return false;
 
   const prepared = prepareWithSegments(text, `${size}px ${CANVAS_FAMILY}`, PRETEXT_OPTS);
   const { lineCount, maxLineWidth } = measureLineStats(prepared, avail);
@@ -140,6 +172,7 @@ export async function render(el, { text, color = "#ffffff", strokeColor = "#0000
   el.style.setProperty("--size", `${size}px`);
   el.style.setProperty("--stroke", `${stroke}px`);
   el.style.setProperty("--avail", `${avail}px`);
+  el.style.setProperty("--line-height", String(LINE_HEIGHT));
   el.style.setProperty("--fill", color);
   el.style.setProperty("--stroke-color", strokeColor);
 

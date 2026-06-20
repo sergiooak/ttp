@@ -39,6 +39,7 @@
   --size: 60px;
   --stroke: 7.5px;
   --avail: 497px;
+  --line-height: 1;
   --fill: #ffffff;
   --stroke-color: #000000;
 }
@@ -59,10 +60,12 @@
   font-family: "Impact", "AppleColorEmoji", "NotoColorEmoji", sans-serif;
   font-weight: 400;
   font-size: var(--size);
-  line-height: 1.1;
+  line-height: var(--line-height);
   text-align: center;
   white-space: pre-wrap;
-  overflow-wrap: break-word;
+  /* Never break inside a word — the fit guarantees each word fits the box. */
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 /* Front layer: solid fill, in normal flow so it defines the wrapper's height. */

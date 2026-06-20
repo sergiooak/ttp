@@ -1,0 +1,65 @@
+# TTP — Text-To-Picture renderer
+
+> A zero-dependency, static, frontend-only renderer that turns text into a
+> 512x512 transparent WhatsApp-sticker image. No backend, no build step. A bot
+> (any language) opens `render.html` with a headless browser (Puppeteer /
+> Playwright), waits for a ready signal, and screenshots one DOM element.
+
+## What this is
+
+- Pure static files. Serve the folder from any host (nginx, GitHub Pages, S3,
+  `python -m http.server`). There is no API server and no image is produced by
+  this code — the integrator captures the screenshot.
+- Font fitting runs entirely via canvas measurement (the `@chenglou/pretext`
+  library, imported from `https://esm.sh/@chenglou/pretext`). The largest font
+  size that fits the 512x512 box is found with a binary search; the result is
+  written to the DOM exactly once. No DOM trial-and-error, no timers.
+
+## Render contract
+
+Open `render.html` with query parameters:
+
+- `text` (required) — the text to render. URL-encode it; `%0A` becomes a literal
+  newline (line breaks are preserved).
+- `color` (optional, default `#ffffff`) — fill color (any CSS color).
+- `strokeColor` (optional, default `#000000`) — outline color (any CSS color).
+- `variant` (optional, default `ttp1`) — reserved for future variants. Only
+  `ttp1` (solid fill + outline, no background image) exists today. Any other
+  value sets `data-error` on `#ttp` and does not render.
+
+Example:
+
+    render.html?text=Hello%20World&color=%23ffcc00&strokeColor=%23000000
+
+## Expected output / how to consume
+
+- The page renders into a single element with `id="ttp"`.
+- `#ttp` is exactly 512x512 px, transparent background, text centered, white
+  (or `color`) fill with a black (or `strokeColor`) outline, Impact font with
+  color-emoji fallback.
+- When rendering is complete, the element gets the attribute
+  `data-ready="true"`. Integrators MUST wait for this before screenshotting.
+- On failure the element gets `data-error="<message>"` and is NOT marked ready.
+
+Integration steps:
+
+1. Navigate to `render.html?...`.
+2. `waitForSelector('#ttp[data-ready="true"]')`.
+3. Screenshot the `#ttp` element handle with `omitBackground: true` to keep the
+   transparent background. The PNG is your sticker.
+
+## Scope
+
+- v1 ships a single variant (`ttp1`). The code is structured so more variants
+  can be added later, but no generic variant system exists yet.
+- No client-side PNG export, no analytics, no external runtime dependencies
+  besides the Pretext CDN import.
+
+## Self-hosting notes
+
+- Serve the entire folder as-is. The only network dependency at runtime is the
+  Pretext ESM import from esm.sh.
+- Recommended headers: long-lived immutable cache on `/fonts`, `ttp.js`,
+  `ttp.css` (`Cache-Control: public, max-age=31536000, immutable`), and
+  `Access-Control-Allow-Origin: *` so cross-origin headless browsers can load
+  the assets.

@@ -1,0 +1,4 @@
+# This site is meant to be opened by bots and headless browsers.
+# Crawl freely.
+User-agent: *
+Allow: /

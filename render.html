@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index, follow" />
+    <title>TTP render</title>
+
+    <!-- Preload local fonts so first paint / canvas measurement is immediate. -->
+    <link rel="preload" href="./fonts/Impact.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./fonts/AppleColorEmoji.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./fonts/NotoColorEmoji.ttf" as="font" type="font/ttf" crossorigin />
+
+    <link rel="stylesheet" href="./ttp.css" />
+    <style>
+      /* No UI chrome — just the bare 512x512 target, transparent background. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Bots wait for #ttp[data-ready="true"] then screenshot this element. -->
+    <main id="ttp"></main>
+
+    <script type="module">
+      import { buildTarget, render } from "./ttp.js";
+
+      const params = new URLSearchParams(location.search);
+      const text = params.get("text") ?? "";
+      const color = params.get("color") || "#ffffff";
+      const strokeColor = params.get("strokeColor") || "#000000";
+      const variant = params.get("variant") || "ttp1";
+
+      const el = document.getElementById("ttp");
+      buildTarget(el);
+
+      // Only ttp1 exists for now. Reserved for future variants.
+      if (variant !== "ttp1") {
+        el.setAttribute("data-error", `unknown variant: ${variant}`);
+      }
+
+      try {
+        await render(el, { text, color, strokeColor });
+      } catch (err) {
+        // Surface the failure for the integrator; do NOT mark ready.
+        console.error("[ttp] render failed:", err);
+        el.setAttribute("data-error", String(err && err.message ? err.message : err));
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TTP preview</title>
+
+    <link rel="preload" href="./fonts/Impact.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./fonts/AppleColorEmoji.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="./fonts/NotoColorEmoji.ttf" as="font" type="font/ttf" crossorigin />
+
+    <link rel="stylesheet" href="./ttp.css" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 2rem 1rem;
+        box-sizing: border-box;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      /* Checkerboard so the transparent sticker is visible while editing. */
+      .stage {
+        background-color: #ccc;
+        background-image: linear-gradient(45deg, #999 25%, transparent 25%),
+          linear-gradient(-45deg, #999 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #999 75%),
+          linear-gradient(-45deg, transparent 75%, #999 75%);
+        background-size: 24px 24px;
+        background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+        border-radius: 8px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-start;
+        max-width: 512px;
+        width: 100%;
+      }
+      .controls label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+      }
+      textarea {
+        flex: 1 1 100%;
+        min-height: 4.5rem;
+        font: inherit;
+        padding: 0.5rem;
+        resize: vertical;
+      }
+      .meta {
+        font-size: 0.8rem;
+        opacity: 0.7;
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Text-To-Picture — local preview</h1>
+
+    <div class="stage">
+      <main id="ttp"></main>
+    </div>
+
+    <div class="controls">
+      <textarea id="text" placeholder="Type sticker text…">when you finally
+fix the bug 🎉</textarea>
+      <label>
+        Fill
+        <input type="color" id="color" value="#ffffff" />
+      </label>
+      <label>
+        Outline
+        <input type="color" id="strokeColor" value="#000000" />
+      </label>
+      <span class="meta" id="meta"></span>
+    </div>
+
+    <script type="module">
+      import { buildTarget, render } from "./ttp.js";
+
+      const el = document.getElementById("ttp");
+      const textInput = document.getElementById("text");
+      const colorInput = document.getElementById("color");
+      const strokeInput = document.getElementById("strokeColor");
+      const meta = document.getElementById("meta");
+
+      buildTarget(el);
+
+      async function update() {
+        const { size, stroke } = await render(el, {
+          text: textInput.value,
+          color: colorInput.value,
+          strokeColor: strokeInput.value,
+        });
+        meta.textContent = `font-size: ${size.toFixed(1)}px · stroke: ${stroke.toFixed(1)}px`;
+      }
+
+      for (const input of [textInput, colorInput, strokeInput]) {
+        input.addEventListener("input", update);
+      }
+      update();
+    </script>
+  </body>
+</html>

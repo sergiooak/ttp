@@ -29,6 +29,13 @@ const LINE_HEIGHT = 1.0;
  */
 const BAND_FRACTION = 1/3;
 
+/**
+ * Global padding (px): the minimum margin between the text and the image edge,
+ * on every side. The stroke is reserved separately, so this is pure breathing
+ * room — text "sticks" this far from the margin.
+ */
+const PADDING = 8;
+
 /** Supported layout modes. Anything else falls back to `center`. */
 export const MODES = ["center", "top", "bottom", "both", "split"];
 
@@ -94,6 +101,43 @@ function lineInkRatio() {
   const desc = m.fontBoundingBoxDescent ?? m.actualBoundingBoxDescent ?? 20;
   _lineRatio = (asc + desc) / 100;
   return _lineRatio;
+}
+
+/** Cached ink overhang above/below a `line-height:1` box, as a size fraction. */
+let _inkOverhang = null;
+
+/**
+ * How far the glyph ink pokes above/below a `line-height: 1.0` text box, as a
+ * fraction of the font size — measured empirically because the browser's line
+ * metrics for Impact differ from canvas metrics. Used to position top/bottom
+ * anchored captions so the ink (not the line box) lands at the padding.
+ * One-time DOM probe; requires fonts loaded and a document body.
+ * @returns {{ top: number, bottom: number }}
+ */
+function inkOverhang() {
+  if (_inkOverhang != null) return _inkOverhang;
+  if (typeof document === "undefined" || !document.body) return { top: 0.2, bottom: 0.05 };
+
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:absolute;visibility:hidden;left:-9999px;top:0;width:2000px;" +
+    'font-family:"Impact","AppleColorEmoji","NotoColorEmoji",sans-serif;' +
+    "font-size:100px;line-height:1;white-space:pre;";
+  // Worst-case ink: accented caps poke highest, descenders/cedilla lowest.
+  probe.textContent = "ÁÂÃMgjpqyç";
+  document.body.appendChild(probe);
+
+  const boxRect = probe.getBoundingClientRect();
+  const range = document.createRange();
+  range.selectNodeContents(probe);
+  const inkRect = range.getBoundingClientRect();
+  document.body.removeChild(probe);
+
+  _inkOverhang = {
+    top: Math.max(0, (boxRect.top - inkRect.top) / 100),
+    bottom: Math.max(0, (inkRect.bottom - boxRect.bottom) / 100),
+  };
+  return _inkOverhang;
 }
 
 // ----------------------------------------------------------------------------
@@ -243,24 +287,30 @@ export async function ensureFontsReady() {
  *             boxes: Array<{ text: string, boxW: number, boxH: number }> }}
  */
 function resolveLayout(mode, { text, topText, bottomText }) {
-  const band = BOX * BAND_FRACTION;
+  // Caption modes lose PADDING so the text "sticks" a margin from the image
+  // edge: width on both sides, a band height at its outer edge only (the inner
+  // edge faces the empty middle, which never clips). center deliberately uses
+  // the FULL box, edge to edge, to fill the square as aggressively as possible.
+  // (fitsInBox additionally reserves the stroke on every side.)
+  const usableW = BOX - 2 * PADDING;
+  const bandH = BOX * BAND_FRACTION - PADDING;
   switch (mode) {
     case "top":
       return {
         blocks: [{ text, anchor: "top" }],
-        boxes: [{ text, boxW: BOX, boxH: band }],
+        boxes: [{ text, boxW: usableW, boxH: bandH }],
       };
     case "bottom":
       return {
         blocks: [{ text, anchor: "bottom" }],
-        boxes: [{ text, boxW: BOX, boxH: band }],
+        boxes: [{ text, boxW: usableW, boxH: bandH }],
       };
     case "both": {
       const blocks = [
         { text: topText, anchor: "top" },
         { text: bottomText, anchor: "bottom" },
       ];
-      return { blocks, boxes: blocks.map((b) => ({ text: b.text, boxW: BOX, boxH: band })) };
+      return { blocks, boxes: blocks.map((b) => ({ text: b.text, boxW: usableW, boxH: bandH })) };
     }
     case "split": {
       const { top, bottom } = splitByWidth(text);
@@ -268,7 +318,7 @@ function resolveLayout(mode, { text, topText, bottomText }) {
         { text: top, anchor: "top" },
         { text: bottom, anchor: "bottom" },
       ];
-      return { blocks, boxes: blocks.map((b) => ({ text: b.text, boxW: BOX, boxH: band })) };
+      return { blocks, boxes: blocks.map((b) => ({ text: b.text, boxW: usableW, boxH: bandH })) };
     }
     case "center":
     default:
@@ -344,13 +394,24 @@ export async function render(
 
   const size = fitFontSizeMulti(boxes);
   const stroke = strokeForSize(size);
-  const avail = BOX - 2 * stroke;
+  // Text wrapper width = the usable width the fit measured against (full box for
+  // center, padded box for caption modes) minus the stroke on both sides.
+  const avail = boxes[0].boxW - 2 * stroke;
+
+  // Top/bottom anchor distance that lands the OUTLINE (not the line box) exactly
+  // PADDING from the edge: padding + half the stroke + the measured ink overhang.
+  const ink = inkOverhang();
+  const padTop = PADDING + stroke / 2 + ink.top * size;
+  const padBottom = PADDING + stroke / 2 + ink.bottom * size;
 
   // CSS custom properties drive size/stroke/colors so fill and stroke stay
   // perfectly aligned, and so both blocks share the same fitted size.
   el.style.setProperty("--size", `${size}px`);
   el.style.setProperty("--stroke", `${stroke}px`);
   el.style.setProperty("--avail", `${avail}px`);
+  el.style.setProperty("--pad", `${PADDING}px`);
+  el.style.setProperty("--pad-top", `${padTop}px`);
+  el.style.setProperty("--pad-bottom", `${padBottom}px`);
   el.style.setProperty("--band", `${BOX * BAND_FRACTION}px`);
   el.style.setProperty("--line-height", String(LINE_HEIGHT));
   el.style.setProperty("--fill", color);

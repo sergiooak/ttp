@@ -36,37 +36,47 @@
   /* Defaults; overwritten by ttp.js via inline custom properties. */
   --size: 60px;
   --stroke: 7.5px;
-  --avail: 497px;
-  --band: 256px;
+  --avail: 465px;
+  --pad: 8px;
+  --pad-top: 24px;
+  --pad-bottom: 12px;
+  --band: 171px;
   --line-height: 1;
   --fill: #ffffff;
   --stroke-color: #000000;
 }
 
-/* An anchored text block. Full box width; vertical region set by the anchor
-   class below. Flex centers the text within that region. */
+/* An anchored text block. Full box width; vertical region + alignment set by
+   the anchor class below. */
 .ttp-block {
   position: absolute;
   left: 0;
   width: 512px;
   box-sizing: border-box;
   display: flex;
-  align-items: center;
   justify-content: center;
 }
 
-/* center: full box. top/bottom: a half-height band pinned to that edge. */
+/* center: full box, text centered. */
 .ttp-center {
   top: 0;
   height: 512px;
+  align-items: center;
 }
+/* top: a band pinned to the top edge, text aligned to the top. --pad-top is
+   calibrated (padding + stroke + ink overhang) so the outline lands at --pad. */
 .ttp-top {
   top: 0;
   height: var(--band);
+  align-items: flex-start;
+  padding-top: var(--pad-top);
 }
+/* bottom: a band pinned to the bottom edge, text aligned to the bottom. */
 .ttp-bottom {
   bottom: 0;
   height: var(--band);
+  align-items: flex-end;
+  padding-bottom: var(--pad-bottom);
 }
 
 /* Width is pinned to the same value Pretext measured against, so the DOM wraps

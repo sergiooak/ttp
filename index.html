@@ -125,8 +125,8 @@
           opts.text = textInput.value;
         }
 
-        const { size, stroke } = await render(el, opts);
-        meta.textContent = `mode: ${mode} · font-size: ${size.toFixed(1)}px · stroke: ${stroke.toFixed(1)}px`;
+        const { size, stroke, wordBreak } = await render(el, opts);
+        meta.textContent = `mode: ${mode} · font-size: ${size.toFixed(1)}px · stroke: ${stroke.toFixed(1)}px${wordBreak ? " · word-break: ON" : ""}`;
       }
 
       for (const input of [textInput, bottomInput, modeInput, colorInput, strokeInput]) {

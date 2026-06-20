@@ -164,16 +164,53 @@ export function strokeForSize(size) {
  * @param {number} boxH
  * @returns {boolean}
  */
-function fitsInBox(text, size, boxW, boxH) {
+/**
+ * Ratio below which the no-break constraint is costing significant font size.
+ * Alone this can't distinguish "velocidade" (real word) from "kkkkkkkk"
+ * (filler) — used together with entropy.
+ */
+const WORD_BREAK_RATIO = 0.6;
+
+/**
+ * Character entropy at or below which a word is considered a filler/outlier
+ * token (e.g. "kkkk", "rsrs", "haha"). Real words in any natural language
+ * have entropy > 1; these repetitive tokens have entropy ≤ 1 because they
+ * cycle through ≤ 2 distinct characters. This is an information-theory
+ * boundary, not a magic number.
+ */
+const WORD_BREAK_ENTROPY = 1.0;
+
+/**
+ * Shannon entropy (bits) of the characters in `word`, case-insensitive.
+ * @param {string} word
+ * @returns {number}
+ */
+function charEntropy(word) {
+  const freq = {};
+  for (const c of word.toLowerCase()) freq[c] = (freq[c] || 0) + 1;
+  const n = word.length;
+  return -Object.values(freq).reduce((s, f) => s + (f / n) * Math.log2(f / n), 0);
+}
+
+/**
+ * Longest whitespace-delimited word in `text` (by character count).
+ * @param {string} text
+ * @returns {string}
+ */
+function longestWord(text) {
+  return text.split(/\s+/).reduce((a, b) => (b.length > a.length ? b : a), "");
+}
+
+function fitsInBox(text, size, boxW, boxH, allowWordBreak = false) {
   if (!text) return true;
 
   const stroke = strokeForSize(size);
   const availW = boxW - 2 * stroke;
   const availH = boxH - 2 * stroke;
 
-  // No single word may be wider than the box — otherwise it overflows, since
-  // the DOM never breaks inside a word.
-  if (longestWordWidth(text, size) > availW) return false;
+  // When word-break is disabled, no single word may exceed the available width
+  // — otherwise it overflows since the DOM never breaks inside a word.
+  if (!allowWordBreak && longestWordWidth(text, size) > availW) return false;
 
   const prepared = prepareWithSegments(text, `${size}px ${CANVAS_FAMILY}`, PRETEXT_OPTS);
   const { lineCount, maxLineWidth } = measureLineStats(prepared, availW);
@@ -191,10 +228,11 @@ function fitsInBox(text, size, boxW, boxH) {
  * single shared size that fits both — what `both` and `split` layouts need.
  * Runs synchronously in one tick — no DOM, no waits.
  * @param {Array<{ text: string, boxW: number, boxH: number }>} blocks
+ * @param {boolean} allowWordBreak  if true, Pretext may grapheme-break words
  * @returns {number} font size in px
  */
-export function fitFontSizeMulti(blocks) {
-  const fitsAll = (size) => blocks.every((b) => fitsInBox(b.text, size, b.boxW, b.boxH));
+export function fitFontSizeMulti(blocks, allowWordBreak = false) {
+  const fitsAll = (size) => blocks.every((b) => fitsInBox(b.text, size, b.boxW, b.boxH, allowWordBreak));
 
   // Degenerate cases: even the smallest size overflows (one huge unbreakable
   // word), or the largest size still fits (very short text).
@@ -392,7 +430,25 @@ export async function render(
     bottomText: String(bottomText == null ? "" : bottomText),
   });
 
-  const size = fitFontSizeMulti(boxes);
+  // Dual-fit: compare font size with and without mid-word breaking.
+  // If no-break produces a font ≥40% smaller than break-allowed, an outlier
+  // word (e.g. "kkkkkkkkkk") is the bottleneck — enable word-break for it.
+  // Guard: if no-break is already at MIN_SIZE (word too wide to fit at all at
+  // even the smallest size), we don't compare ratios — just enable break.
+  // Also guard the inverse: if with-break the word would still fit on a single
+  // line (break makes no visual difference), no-break is preferred.
+  const sizeNoBreak   = fitFontSizeMulti(boxes, false);
+  const sizeWithBreak = fitFontSizeMulti(boxes, true);
+  const ratio = sizeNoBreak / sizeWithBreak;
+  // Enable word-break only when BOTH signals fire:
+  // 1. Ratio < threshold — the no-break constraint is costing significant size.
+  // 2. The longest word has low entropy (≤ 1 bit) — it's a filler/repetitive
+  //    token, not a genuine long word. This prevents breaking real words like
+  //    "velocidade" or "supercalifragilisticexpialidocious".
+  const allText = boxes.map((b) => b.text).join(" ");
+  const lw = longestWord(allText);
+  const wordBreak = ratio < WORD_BREAK_RATIO && charEntropy(lw) <= WORD_BREAK_ENTROPY;
+  const size = wordBreak ? sizeWithBreak : sizeNoBreak;
   const stroke = strokeForSize(size);
   // Text wrapper width = the usable width the fit measured against (full box for
   // center, padded box for caption modes) minus the stroke on both sides.
@@ -414,11 +470,12 @@ export async function render(
   el.style.setProperty("--pad-bottom", `${padBottom}px`);
   el.style.setProperty("--band", `${BOX * BAND_FRACTION}px`);
   el.style.setProperty("--line-height", String(LINE_HEIGHT));
+  el.style.setProperty("--word-break", wordBreak ? "break-word" : "normal");
   el.style.setProperty("--fill", color);
   el.style.setProperty("--stroke-color", strokeColor);
 
   el.replaceChildren(...blocks.map((b) => makeBlock(b.text, b.anchor)));
 
   el.setAttribute("data-ready", "true");
-  return { size, stroke, mode: resolvedMode, blocks: blocks.map((b) => ({ anchor: b.anchor, text: b.text })) };
+  return { size, stroke, mode: resolvedMode, wordBreak, blocks: blocks.map((b) => ({ anchor: b.anchor, text: b.text })) };
 }

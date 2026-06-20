@@ -97,9 +97,9 @@
   line-height: var(--line-height);
   text-align: center;
   white-space: pre-wrap;
-  /* Never break inside a word — the fit guarantees each word fits the box. */
-  overflow-wrap: normal;
-  word-break: normal;
+  /* Normally words never break; auto-enabled when an outlier word detected. */
+  overflow-wrap: var(--word-break, normal);
+  word-break: var(--word-break, normal);
 }
 
 /* Front layer: solid fill, in normal flow so it defines the wrapper's height. */

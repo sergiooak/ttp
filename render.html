@@ -28,24 +28,26 @@
     <main id="ttp"></main>
 
     <script type="module">
-      import { buildTarget, render } from "./ttp.js";
+      import { render } from "./ttp.js";
 
       const params = new URLSearchParams(location.search);
       const text = params.get("text") ?? "";
+      const topText = params.get("topText") ?? "";
+      const bottomText = params.get("bottomText") ?? "";
+      const mode = params.get("mode") || "center";
       const color = params.get("color") || "#ffffff";
       const strokeColor = params.get("strokeColor") || "#000000";
       const variant = params.get("variant") || "ttp1";
 
       const el = document.getElementById("ttp");
-      buildTarget(el);
 
-      // Only ttp1 exists for now. Reserved for future variants.
+      // Only ttp1 exists for now. Reserved for future visual variants.
       if (variant !== "ttp1") {
         el.setAttribute("data-error", `unknown variant: ${variant}`);
       }
 
       try {
-        await render(el, { text, color, strokeColor });
+        await render(el, { text, topText, bottomText, mode, color, strokeColor });
       } catch (err) {
         // Surface the failure for the integrator; do NOT mark ready.
         console.error("[ttp] render failed:", err);

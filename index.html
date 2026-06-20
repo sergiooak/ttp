@@ -78,8 +78,18 @@
     </div>
 
     <div class="controls">
-      <textarea id="text" placeholder="Type sticker text…">when you finally
-fix the bug 🎉</textarea>
+      <textarea id="text" placeholder="Text (top text in 'both' mode)…">olha a velocidade disso</textarea>
+      <textarea id="bottomText" placeholder="Bottom text (only used in 'both' mode)…" hidden></textarea>
+      <label>
+        Mode
+        <select id="mode">
+          <option value="center">center</option>
+          <option value="top">top</option>
+          <option value="bottom">bottom (subtitle)</option>
+          <option value="both">both</option>
+          <option value="split">split</option>
+        </select>
+      </label>
       <label>
         Fill
         <input type="color" id="color" value="#ffffff" />
@@ -92,26 +102,34 @@ fix the bug 🎉</textarea>
     </div>
 
     <script type="module">
-      import { buildTarget, render } from "./ttp.js";
+      import { render } from "./ttp.js";
 
       const el = document.getElementById("ttp");
       const textInput = document.getElementById("text");
+      const bottomInput = document.getElementById("bottomText");
+      const modeInput = document.getElementById("mode");
       const colorInput = document.getElementById("color");
       const strokeInput = document.getElementById("strokeColor");
       const meta = document.getElementById("meta");
 
-      buildTarget(el);
-
       async function update() {
-        const { size, stroke } = await render(el, {
-          text: textInput.value,
-          color: colorInput.value,
-          strokeColor: strokeInput.value,
-        });
-        meta.textContent = `font-size: ${size.toFixed(1)}px · stroke: ${stroke.toFixed(1)}px`;
+        const mode = modeInput.value;
+        // The bottom textarea is only meaningful in `both` mode.
+        bottomInput.hidden = mode !== "both";
+
+        const opts = { mode, color: colorInput.value, strokeColor: strokeInput.value };
+        if (mode === "both") {
+          opts.topText = textInput.value;
+          opts.bottomText = bottomInput.value;
+        } else {
+          opts.text = textInput.value;
+        }
+
+        const { size, stroke } = await render(el, opts);
+        meta.textContent = `mode: ${mode} · font-size: ${size.toFixed(1)}px · stroke: ${stroke.toFixed(1)}px`;
       }
 
-      for (const input of [textInput, colorInput, strokeInput]) {
+      for (const input of [textInput, bottomInput, modeInput, colorInput, strokeInput]) {
         input.addEventListener("input", update);
       }
       update();

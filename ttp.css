@@ -24,14 +24,12 @@
   font-display: block;
 }
 
-/* The render target. Fixed 512x512, transparent, text centered. */
+/* The render target. Fixed 512x512, transparent, holds one or two blocks. */
 #ttp {
   box-sizing: border-box;
   width: 512px;
   height: 512px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   overflow: hidden;
   background: transparent;
 
@@ -39,18 +37,44 @@
   --size: 60px;
   --stroke: 7.5px;
   --avail: 497px;
+  --band: 256px;
   --line-height: 1;
   --fill: #ffffff;
   --stroke-color: #000000;
 }
 
+/* An anchored text block. Full box width; vertical region set by the anchor
+   class below. Flex centers the text within that region. */
+.ttp-block {
+  position: absolute;
+  left: 0;
+  width: 512px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* center: full box. top/bottom: a half-height band pinned to that edge. */
+.ttp-center {
+  top: 0;
+  height: 512px;
+}
+.ttp-top {
+  top: 0;
+  height: var(--band);
+}
+.ttp-bottom {
+  bottom: 0;
+  height: var(--band);
+}
+
 /* Width is pinned to the same value Pretext measured against, so the DOM wraps
-   exactly where the fit algorithm predicted. The -2% nudge optically centers
-   Impact's caps within the box. */
+   exactly where the fit algorithm predicted. No transform — the height fit
+   accounts for ink overhang, so flex centering lands the block accurately. */
 .ttp-text {
   position: relative;
   width: var(--avail);
-  transform: translateY(-2%);
 }
 
 .ttp-text span {

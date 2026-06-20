@@ -32,20 +32,36 @@ The only runtime network dependency is the Pretext ESM import from
 
 Open `render.html` with these query parameters:
 
-| Param         | Required | Default     | Meaning                                            |
-| ------------- | -------- | ----------- | -------------------------------------------------- |
-| `text`        | yes      | —           | Text to render. `%0A` = newline (preserved).       |
-| `color`       | no       | `#ffffff`   | Fill color (any CSS color).                        |
-| `strokeColor` | no       | `#000000`   | Outline color (any CSS color).                     |
-| `variant`     | no       | `ttp1`      | Reserved. Only `ttp1` exists today.                |
+| Param         | Default     | Meaning                                                        |
+| ------------- | ----------- | ------------------------------------------------------------- |
+| `text`        | —           | Text to render (all modes except `both`). `%0A` = newline.    |
+| `mode`        | `center`    | Layout: `center`, `top`, `bottom`, `both`, `split`.           |
+| `topText`     | —           | Top text — `mode=both` only.                                  |
+| `bottomText`  | —           | Bottom text — `mode=both` only.                               |
+| `color`       | `#ffffff`   | Fill color (any CSS color).                                   |
+| `strokeColor` | `#000000`   | Outline color (any CSS color).                                |
+| `variant`     | `ttp1`      | Visual style, orthogonal to `mode`. Only `ttp1` exists today. |
+
+### Layout modes
+
+| Mode     | What it does                                                              |
+| -------- | ------------------------------------------------------------------------ |
+| `center` | One block centered in the full box (default).                            |
+| `top`    | One block in the top third (caption).                                    |
+| `bottom` | One block in the bottom third (the classic "subtitle").                  |
+| `both`   | `topText` + `bottomText`, top and bottom thirds, **one shared size**.    |
+| `split`  | Auto-splits `text` into two width-balanced halves, top + bottom, shared size. |
 
 > **Note:** this is a fresh contract, intentionally **not** backwards-compatible
 > with the old API's parameter names.
 
-Example:
+Examples:
 
 ```
 render.html?text=Hello%20World&color=%23ffcc00&strokeColor=%23000000
+render.html?mode=bottom&text=em%20manuten%C3%A7%C3%A3o
+render.html?mode=both&topText=one%20does%20not&bottomText=simply%20walk
+render.html?mode=split&text=olha%20a%20velocidade%20disso
 ```
 
 ### Ready / error signaling

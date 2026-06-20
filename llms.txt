@@ -19,17 +19,30 @@
 
 Open `render.html` with query parameters:
 
-- `text` (required) — the text to render. URL-encode it; `%0A` becomes a literal
-  newline (line breaks are preserved).
+- `text` — the text to render (used by every mode except `both`). URL-encode
+  it; `%0A` becomes a literal newline (line breaks are preserved).
+- `mode` (optional, default `center`) — layout. One of:
+    - `center` — one block, centered in the full 512x512 box.
+    - `top` — one block, in the top third (caption).
+    - `bottom` — one block, in the bottom third (the old "subtitle").
+    - `both` — two blocks; reads `topText` and `bottomText` (NOT `text`). Both
+      use a single shared font size.
+    - `split` — `text` is auto-split into two halves at the word boundary
+      nearest the visual midpoint; rendered top + bottom at one shared size.
+  Any unrecognized value falls back to `center`.
+- `topText`, `bottomText` — the two texts for `mode=both` only.
 - `color` (optional, default `#ffffff`) — fill color (any CSS color).
 - `strokeColor` (optional, default `#000000`) — outline color (any CSS color).
-- `variant` (optional, default `ttp1`) — reserved for future variants. Only
-  `ttp1` (solid fill + outline, no background image) exists today. Any other
-  value sets `data-error` on `#ttp` and does not render.
+- `variant` (optional, default `ttp1`) — visual style, orthogonal to `mode`.
+  Only `ttp1` (solid fill + outline, no background image) exists today. Any
+  other value sets `data-error` on `#ttp` and does not render.
 
-Example:
+Examples:
 
     render.html?text=Hello%20World&color=%23ffcc00&strokeColor=%23000000
+    render.html?mode=bottom&text=em%20manuten%C3%A7%C3%A3o
+    render.html?mode=both&topText=one%20does%20not&bottomText=simply%20walk
+    render.html?mode=split&text=olha%20a%20velocidade%20disso
 
 ## Expected output / how to consume
 
@@ -50,8 +63,9 @@ Integration steps:
 
 ## Scope
 
-- v1 ships a single variant (`ttp1`). The code is structured so more variants
-  can be added later, but no generic variant system exists yet.
+- v1 ships a single visual variant (`ttp1`) and five layout modes (`center`,
+  `top`, `bottom`, `both`, `split`). `variant` (visual style) and `mode`
+  (layout) are independent axes.
 - No client-side PNG export, no analytics, no external runtime dependencies
   besides the Pretext CDN import.
 

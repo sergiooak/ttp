@@ -169,16 +169,8 @@ export function strokeForSize(size) {
  * Alone this can't distinguish "velocidade" (real word) from "kkkkkkkk"
  * (filler) — used together with entropy.
  */
-const WORD_BREAK_RATIO = 0.6;
-
-/**
- * Character entropy at or below which a word is considered a filler/outlier
- * token (e.g. "kkkk", "rsrs", "haha"). Real words in any natural language
- * have entropy > 1; these repetitive tokens have entropy ≤ 1 because they
- * cycle through ≤ 2 distinct characters. This is an information-theory
- * boundary, not a magic number.
- */
-const WORD_BREAK_ENTROPY = 1.0;
+export const WORD_BREAK_RATIO = 0.6;
+export const WORD_BREAK_ENTROPY = 1.0;
 
 /**
  * Shannon entropy (bits) of the characters in `word`, case-insensitive.
@@ -477,5 +469,10 @@ export async function render(
   el.replaceChildren(...blocks.map((b) => makeBlock(b.text, b.anchor)));
 
   el.setAttribute("data-ready", "true");
-  return { size, stroke, mode: resolvedMode, wordBreak, blocks: blocks.map((b) => ({ anchor: b.anchor, text: b.text })) };
+  return {
+    size, stroke, mode: resolvedMode, wordBreak,
+    ratio: +(sizeNoBreak / sizeWithBreak).toFixed(3),
+    entropy: +charEntropy(longestWord(allText)).toFixed(2),
+    blocks: blocks.map((b) => ({ anchor: b.anchor, text: b.text }))
+  };
 }

@@ -102,7 +102,7 @@
     </div>
 
     <script type="module">
-      import { render } from "./ttp.js";
+      import { render, WORD_BREAK_RATIO, WORD_BREAK_ENTROPY } from "./ttp.js";
 
       const el = document.getElementById("ttp");
       const textInput = document.getElementById("text");
@@ -114,7 +114,6 @@
 
       async function update() {
         const mode = modeInput.value;
-        // The bottom textarea is only meaningful in `both` mode.
         bottomInput.hidden = mode !== "both";
 
         const opts = { mode, color: colorInput.value, strokeColor: strokeInput.value };
@@ -125,8 +124,8 @@
           opts.text = textInput.value;
         }
 
-        const { size, stroke, wordBreak } = await render(el, opts);
-        meta.textContent = `mode: ${mode} · font-size: ${size.toFixed(1)}px · stroke: ${stroke.toFixed(1)}px${wordBreak ? " · word-break: ON" : ""}`;
+        const { size, stroke, wordBreak, ratio, entropy } = await render(el, opts);
+        meta.textContent = `mode: ${mode} · size: ${size.toFixed(1)}px · stroke: ${stroke.toFixed(1)}px · ratio: ${ratio}/${WORD_BREAK_RATIO} · entropy: ${entropy}/${WORD_BREAK_ENTROPY}${wordBreak ? " · BREAK" : ""}`;
       }
 
       for (const input of [textInput, bottomInput, modeInput, colorInput, strokeInput]) {

@@ -102,7 +102,7 @@
     </div>
 
     <script type="module">
-      import { render, WORD_BREAK_RATIO, WORD_BREAK_ENTROPY } from "./ttp.js";
+      import { render, MODES, WORD_BREAK_RATIO, WORD_BREAK_ENTROPY } from "./ttp.js";
 
       const el = document.getElementById("ttp");
       const textInput = document.getElementById("text");
@@ -111,6 +111,74 @@
       const colorInput = document.getElementById("color");
       const strokeInput = document.getElementById("strokeColor");
       const meta = document.getElementById("meta");
+      const DEFAULTS = {
+        text: "olha a velocidade disso",
+        mode: "center",
+        color: "#ffffff",
+        strokeColor: "#000000",
+      };
+      const OWNED_PARAMS = ["text", "topText", "bottomText", "mode", "color", "strokeColor"];
+      let urlSyncTimer = 0;
+
+      function normalizeMode(mode) {
+        return MODES.includes(mode) ? mode : DEFAULTS.mode;
+      }
+
+      function readStateFromUrl(params) {
+        return {
+          text: params.get("text") ?? DEFAULTS.text,
+          topText: params.get("topText") ?? "",
+          bottomText: params.get("bottomText") ?? "",
+          mode: normalizeMode(params.get("mode") || DEFAULTS.mode),
+          color: params.get("color") || DEFAULTS.color,
+          strokeColor: params.get("strokeColor") || DEFAULTS.strokeColor,
+        };
+      }
+
+      function applyStateToControls(state) {
+        modeInput.value = state.mode;
+        colorInput.value = state.color;
+        strokeInput.value = state.strokeColor;
+        textInput.value = state.mode === "both" ? state.topText : state.text;
+        bottomInput.value = state.bottomText;
+      }
+
+      function stateFromControls() {
+        const mode = normalizeMode(modeInput.value);
+        return {
+          text: textInput.value,
+          topText: mode === "both" ? textInput.value : "",
+          bottomText: mode === "both" ? bottomInput.value : "",
+          mode,
+          color: colorInput.value,
+          strokeColor: strokeInput.value,
+        };
+      }
+
+      function writeStateToUrl(state) {
+        const params = new URLSearchParams(location.search);
+        for (const key of OWNED_PARAMS) params.delete(key);
+
+        if (state.mode !== DEFAULTS.mode) params.set("mode", state.mode);
+        if (state.color !== DEFAULTS.color) params.set("color", state.color);
+        if (state.strokeColor !== DEFAULTS.strokeColor) params.set("strokeColor", state.strokeColor);
+
+        if (state.mode === "both") {
+          if (state.topText) params.set("topText", state.topText);
+          if (state.bottomText) params.set("bottomText", state.bottomText);
+        } else if (state.text && state.text !== DEFAULTS.text) {
+          params.set("text", state.text);
+        }
+
+        const query = params.toString();
+        const nextUrl = `${location.pathname}${query ? `?${query}` : ""}${location.hash}`;
+        history.replaceState(null, "", nextUrl);
+      }
+
+      function scheduleUrlSync() {
+        clearTimeout(urlSyncTimer);
+        urlSyncTimer = setTimeout(() => writeStateToUrl(stateFromControls()), 150);
+      }
 
       async function update() {
         const mode = modeInput.value;
@@ -129,9 +197,15 @@
       }
 
       for (const input of [textInput, bottomInput, modeInput, colorInput, strokeInput]) {
-        input.addEventListener("input", update);
+        input.addEventListener("input", () => {
+          update();
+          scheduleUrlSync();
+        });
       }
+
+      applyStateToControls(readStateFromUrl(new URLSearchParams(location.search)));
       update();
+      writeStateToUrl(stateFromControls());
     </script>
   </body>
 </html>

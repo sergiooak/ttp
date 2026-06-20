@@ -169,7 +169,7 @@ export function strokeForSize(size) {
  * Alone this can't distinguish "velocidade" (real word) from "kkkkkkkk"
  * (filler) — used together with entropy.
  */
-export const WORD_BREAK_RATIO = 0.6;
+export const WORD_BREAK_RATIO = 0.71;
 export const WORD_BREAK_ENTROPY = 1.0;
 
 /**
@@ -417,9 +417,9 @@ export async function render(
 
   const resolvedMode = MODES.includes(mode) ? mode : "center";
   const { blocks, boxes } = resolveLayout(resolvedMode, {
-    text: String(text == null ? "" : text),
-    topText: String(topText == null ? "" : topText),
-    bottomText: String(bottomText == null ? "" : bottomText),
+    text: String(text == null ? "" : text).trim(),
+    topText: String(topText == null ? "" : topText).trim(),
+    bottomText: String(bottomText == null ? "" : bottomText).trim(),
   });
 
   // Dual-fit: compare font size with and without mid-word breaking.

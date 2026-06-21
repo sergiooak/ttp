@@ -78,7 +78,7 @@
     </div>
 
     <div class="controls">
-      <textarea id="text" placeholder="Text (top text in 'both' mode)…">olha a velocidade disso</textarea>
+      <textarea id="text" placeholder="Text (top text in 'both' mode)…"></textarea>
       <textarea id="bottomText" placeholder="Bottom text (only used in 'both' mode)…" hidden></textarea>
       <label>
         Mode
@@ -111,8 +111,41 @@
       const colorInput = document.getElementById("color");
       const strokeInput = document.getElementById("strokeColor");
       const meta = document.getElementById("meta");
+      const MEME_PHRASES = [        
+        'calma calabreso',       
+        'que isso, meu filho, calma',        
+        'ô loco, meu',
+        'o pai tá on',
+        'simplesmente intankável',
+        'agora eu se consagro',
+        'tankei foi nada',
+        'o miserável é um gênio',
+        'aí é complicado',
+        'me ajuda a te ajudar',
+        'cada cachorro que lamba sua caceta',
+        'eu não tanko',
+        'pode isso, arnaldo?',
+        'hoje não, faro',
+        'chama no probleminha',
+        'o sistema é bruto',
+        'segue o líder',
+        'isso aí é elite',
+        'aceita que dói menos',
+        'tá tranquilo, tá favorável',
+        'é cilada, bino',
+        'que fase...',
+        'pelo amor de deus',
+        'zero condições',
+        'não ironicamente',
+        'absolute cinema',
+      ]
+
+      function randomDefaultText() {
+        return MEME_PHRASES[Math.floor(Math.random() * MEME_PHRASES.length)];
+      }
+
       const DEFAULTS = {
-        text: "olha a velocidade disso",
+        text: randomDefaultText(),
         mode: "center",
         color: "#ffffff",
         strokeColor: "#000000",
